@@ -1,70 +1,206 @@
 #include <stdio.h>
-#include <string.h>
 #include <stdlib.h>
-#include <stdbool.h>
+#include <string.h>
 
-// Código da Ilha – Edição Free Fire
-// Nível: Mestre
-// Este programa simula o gerenciamento avançado de uma mochila com componentes coletados durante a fuga de uma ilha.
-// Ele introduz ordenação com critérios e busca binária para otimizar a gestão dos recursos.
+typedef struct {
+    char nome[30];
+    char tipo[20];
+    int quantidade;
+} Item;
 
-int main() {
-    // Menu principal com opções:
-    // 1. Adicionar um item
-    // 2. Remover um item
-    // 3. Listar todos os itens
-    // 4. Ordenar os itens por critério (nome, tipo, prioridade)
-    // 5. Realizar busca binária por nome
-    // 0. Sair
+/* — Versão vetor */
+#define MAX_ITENS 100
+typedef struct {
+    Item itens[MAX_ITENS];
+    int tamanho;
+} MochilaVetor;
 
-    // A estrutura switch trata cada opção chamando a função correspondente.
-    // A ordenação e busca binária exigem que os dados estejam bem organizados.
+/* — Versão lista encadeada */
+typedef struct No {
+    Item dados;
+    struct No *proximo;
+} No;
+typedef struct {
+    No *inicio;
+    int tamanho;
+} MochilaLista;
 
-    return 0;
+/* — Vetor: inicializar */
+void initVetor(MochilaVetor *m) {
+    m->tamanho = 0;
 }
 
-// Struct Item:
-// Representa um componente com nome, tipo, quantidade e prioridade (1 a 5).
-// A prioridade indica a importância do item na montagem do plano de fuga.
+/* — Lista: inicializar */
+void initLista(MochilaLista *m) {
+    m->inicio = NULL;
+    m->tamanho = 0;
+}
 
-// Enum CriterioOrdenacao:
-// Define os critérios possíveis para a ordenação dos itens (nome, tipo ou prioridade).
+/* — Vetor: inserir */
+int inserirVetor(MochilaVetor *m, Item item) {
+    if (m->tamanho >= MAX_ITENS) return 0;
+    m->itens[m->tamanho++] = item;
+    return 1;
+}
 
-// Vetor mochila:
-// Armazena até 10 itens coletados.
-// Variáveis de controle: numItens (quantidade atual), comparacoes (análise de desempenho), ordenadaPorNome (para controle da busca binária).
+/* — Lista: inserir no início */
+int inserirLista(MochilaLista *m, Item item) {
+    No *novo = malloc(sizeof(No));
+    if (!novo) return 0;
+    novo->dados = item;
+    novo->proximo = m->inicio;
+    m->inicio = novo;
+    m->tamanho++;
+    return 1;
+}
 
-// limparTela():
-// Simula a limpeza da tela imprimindo várias linhas em branco.
+/* — Vetor: listar */
+void listarVetor(const MochilaVetor *m) {
+    printf("Itens (vetor):\n");
+    for (int i = 0; i < m->tamanho; i++) {
+        printf("  %s | %s | %d\n",
+               m->itens[i].nome,
+               m->itens[i].tipo,
+               m->itens[i].quantidade);
+    }
+}
 
-// exibirMenu():
-// Apresenta o menu principal ao jogador, com destaque para status da ordenação.
+/* — Lista: listar */
+void listarLista(const MochilaLista *m) {
+    printf("Itens (lista):\n");
+    No *p = m->inicio;
+    while (p) {
+        printf("  %s | %s | %d\n",
+               p->dados.nome,
+               p->dados.tipo,
+               p->dados.quantidade);
+        p = p->proximo;
+    }
+}
 
-// inserirItem():
-// Adiciona um novo componente à mochila se houver espaço.
-// Solicita nome, tipo, quantidade e prioridade.
-// Após inserir, marca a mochila como "não ordenada por nome".
+/* — Vetor: busca sequencial */
+int buscarVetor(const MochilaVetor *m, const char *nome) {
+    for (int i = 0; i < m->tamanho; i++) {
+        if (strcmp(m->itens[i].nome, nome) == 0) {
+            return i;
+        }
+    }
+    return -1;
+}
 
-// removerItem():
-// Permite remover um componente da mochila pelo nome.
-// Se encontrado, reorganiza o vetor para preencher a lacuna.
+/* — Lista: busca sequencial */
+int buscarLista(const MochilaLista *m, const char *nome) {
+    No *p = m->inicio;
+    int pos = 0;
+    while (p) {
+        if (strcmp(p->dados.nome, nome) == 0) {
+            return pos;
+        }
+        p = p->proximo;
+        pos++;
+    }
+    return -1;
+}
 
-// listarItens():
-// Exibe uma tabela formatada com todos os componentes presentes na mochila.
+/* — Vetor: ordenação simples (bubble sort) por nome */
+void ordenarVetor(MochilaVetor *m) {
+    for (int i = 0; i < m->tamanho - 1; i++) {
+        for (int j = 0; j < m->tamanho - i - 1; j++) {
+            if (strcmp(m->itens[j].nome, m->itens[j+1].nome) > 0) {
+                Item tmp = m->itens[j];
+                m->itens[j] = m->itens[j+1];
+                m->itens[j+1] = tmp;
+            }
+        }
+    }
+}
 
-// menuDeOrdenacao():
-// Permite ao jogador escolher como deseja ordenar os itens.
-// Utiliza a função insertionSort() com o critério selecionado.
-// Exibe a quantidade de comparações feitas (análise de desempenho).
+/* — Vetor: busca binária (precisa estar ordenado) */
+int buscarBinariaVetor(const MochilaVetor *m, const char *nome) {
+    int esq = 0, dir = m->tamanho - 1;
+    while (esq <= dir) {
+        int meio = (esq + dir) / 2;
+        int cmp = strcmp(m->itens[meio].nome, nome);
+        if (cmp == 0) return meio;
+        else if (cmp < 0) esq = meio + 1;
+        else dir = meio - 1;
+    }
+    return -1;
+}
 
-// insertionSort():
-// Implementação do algoritmo de ordenação por inserção.
-// Funciona com diferentes critérios de ordenação:
-// - Por nome (ordem alfabética)
-// - Por tipo (ordem alfabética)
-// - Por prioridade (da mais alta para a mais baixa)
+int main() {
+    MochilaVetor mv;
+    MochilaLista ml;
+    initVetor(&mv);
+    initLista(&ml);
 
-// buscaBinariaPorNome():
-// Realiza busca binária por nome, desde que a mochila esteja ordenada por nome.
-// Se encontrar, exibe os dados do item buscado.
-// Caso contrário, informa que não encontrou o item.
+    int escolha = 0;
+    Item item;
+    char nomeBusca[30];
+
+    do {
+        printf("\nEscolha estrutura: 1=Vetor, 2=Lista, 0=Sair: ");
+        scanf("%d", &escolha);
+        getchar();
+
+        if (escolha == 1) {
+            printf("Inserir item no vetor:\n");
+            printf("Nome: ");
+            fgets(item.nome, sizeof(item.nome), stdin);
+            item.nome[strcspn(item.nome, "\n")] = '\0';
+            printf("Tipo: ");
+            fgets(item.tipo, sizeof(item.tipo), stdin);
+            item.tipo[strcspn(item.tipo, "\n")] = '\0';
+            printf("Quantidade: ");
+            scanf("%d", &item.quantidade);
+            getchar();
+            inserirVetor(&mv, item);
+
+            printf("Listando vetor:\n");
+            listarVetor(&mv);
+
+            printf("Ordenando vetor...\n");
+            ordenarVetor(&mv);
+
+            printf("Buscar (binária) item no vetor, digite nome: ");
+            fgets(nomeBusca, sizeof(nomeBusca), stdin);
+            nomeBusca[strcspn(nomeBusca, "\n")] = '\0';
+            int posB = buscarBinariaVetor(&mv, nomeBusca);
+            printf("Resultado busca binária no vetor: %d\n", posB);
+        }
+        else if (escolha == 2) {
+            printf("Inserir item na lista:\n");
+            printf("Nome: ");
+            fgets(item.nome, sizeof(item.nome), stdin);
+            item.nome[strcspn(item.nome, "\n")] = '\0';
+            printf("Tipo: ");
+            fgets(item.tipo, sizeof(item.tipo), stdin);
+            item.tipo[strcspn(item.tipo, "\n")] = '\0';
+            printf("Quantidade: ");
+            scanf("%d", &item.quantidade);
+            getchar();
+            inserirLista(&ml, item);
+
+            printf("Listando lista:\n");
+            listarLista(&ml);
+
+            printf("Buscar (sequencial) item na lista, digite nome: ");
+            fgets(nomeBusca, sizeof(nomeBusca), stdin);
+            nomeBusca[strcspn(nomeBusca, "\n")] = '\0';
+            int posL = buscarLista(&ml, nomeBusca);
+            printf("Resultado busca sequencial na lista: %d\n", posL);
+        }
+
+    } while (escolha != 0);
+
+    // liberar lista
+    No *p = ml.inicio;
+    while (p) {
+        No *tmp = p->proximo;
+        free(p);
+        p = tmp;
+    }
+
+    printf("Encerrando.\n");
+    return 0;
+}
